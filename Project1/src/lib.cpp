@@ -1513,7 +1513,7 @@ void inverse(double **a, int n)
   for(i = 0; i < n; i++) {
     printf("\n");
     for(j = 0; j < n; j++) {
-      printf(" a[%2d][%2d] = %12.4E",i, j, a[i][j]);
+//      printf(" a[%2d][%2d] = %12.4E",i, j, a[i][j]);
     }
   }
   // find inverse of a[][] by columns 

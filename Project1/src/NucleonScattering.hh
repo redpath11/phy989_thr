@@ -18,7 +18,8 @@ private:
   bool m_aSet;
   
   int m_meshPoints;
-  double m_k0;
+  double m_k0;// [1/fm]
+  double m_V0,m_a;// [MeV],[fm]
   double m_mass;
   
   double *m_weights;
@@ -36,6 +37,12 @@ public:
   double GetK0();
   void SetK0(double);
 
+  double GetV0();
+  void SetV0(double);
+
+  double GetA();
+  void SetA(double);
+
   void ListPoints();
   void PrintA();
 
@@ -49,6 +56,8 @@ public:
   void FiniteSphere(double,double);
   void SetMatrixA();
   void PhaseShift();
+
+  void AnalyticPhaseShift();
 
 };
 #endif
