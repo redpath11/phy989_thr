@@ -54,6 +54,7 @@ public:
     int n);
   void MapPoints();
   void FiniteSphere(double,double);
+  void PotentialNP();
   void SetMatrixA();
   void PhaseShift();
 
