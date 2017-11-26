@@ -1,14 +1,22 @@
 #include "NucleonScattering.hh"
 
-NucleonScattering::NucleonScattering(int n,double k0=1.){
+NucleonScattering::NucleonScattering(int n,double Elab=1.){
   m_momentaSet=false; m_potentialSet=false; m_aSet=false;
   m_meshPoints=n;
-  m_k0 = k0;
+//  m_k0 = k0;
+//  m_k0 = sqrt(Elab/83.);// [1/fm]
+//  cout << "k0 = " << m_k0 << endl;
   m_weights = new double [m_meshPoints+1];
   m_momenta = new double [m_meshPoints+1];
-//  m_mass = 940.;// [MeV/c^2]
-  m_mass = 1.;// [MeV/c^2]
+  m_mass = 939./(197.);// [1/fm]
+//  m_mass = 939.;// [MeV]
+//  m_mass = 1.0;// [Mn]
+  m_E0 = Elab / 197.;// [1/fm]
+//  m_E0 = Elab;// [MeV]
+  m_k0 = sqrt(0.5*m_mass*(m_E0));// [1/fm]
 
+  m_epsilon = 0.00001;
+  proximityWarning=false;
 }
 
 NucleonScattering::~NucleonScattering(){
@@ -22,6 +30,7 @@ void NucleonScattering::SetK0(double k0){
   // set observable point
   m_k0 = k0;
   m_momenta[m_meshPoints] = m_k0;
+  m_E0 = m_k0*m_k0*2./m_mass;
 }
 
 double NucleonScattering::GetV0(){ return m_V0; }
@@ -29,6 +38,13 @@ void NucleonScattering::SetV0(double v){ m_V0 = v; }
 
 double NucleonScattering::GetA(){ return m_a; }
 void NucleonScattering::SetA(double a){ m_a = a; }
+
+double NucleonScattering::GetE0(){ return m_E0; }
+void NucleonScattering::SetE0(double e0){
+  m_E0 = e0;
+  m_k0 = sqrt(0.5*m_mass*m_E0);
+  m_momenta[m_meshPoints] = m_k0;
+}
 
 
 
@@ -111,17 +127,29 @@ void NucleonScattering::GaussLegendreQuadrature(double x1, double x2, double x[]
 */
 void NucleonScattering::MapPoints(){
   // Call Morten's function to fill the weights and k points arrays
-  GaussLegendreQuadrature(-1.,1.,m_weights,m_momenta,m_meshPoints);
+
+  double *weights = new double [m_meshPoints];
+  double *momenta = new double [m_meshPoints];
+
+  GaussLegendreQuadrature(-1.,1.,momenta,weights,m_meshPoints);
+
+//  for(int i=0;i<m_meshPoints;i++){
+//    printf("momentum[%i] = %g\nweight[%i] = %g\n\n",i,momenta[i],i,weights[i]);
+//  }
   // Map w and k from [-1,1] to [0,inf)
   for(int i=0;i<m_meshPoints;i++){
-//    printf("Was,\nk = %g\nw = %g\n\n",m_momenta[i],m_weights[i]);
-    m_momenta[i] = tan(M_PI_4*(1.+m_momenta[i]));
-    double costerm = cos(M_PI_4*(1.+m_momenta[i]));
-    m_weights[i] = M_PI_4 * m_weights[i] / (costerm*costerm);
-//    printf("Now,\nk = %g\nw = %g\n\n",m_momenta[i],m_weights[i]);
+//    printf("x = %g   w = %g",momenta[i],weights[i]);
+    m_momenta[i] = tan(M_PI_4*(1.+momenta[i]));
+//    m_momenta[i] = 197.*tan(M_PI_4*(1.+momenta[i]));
+    double costerm = cos(M_PI_4*(1.+momenta[i]));
+    m_weights[i] = M_PI_4 * weights[i] / (costerm*costerm);
+//    m_weights[i] = 197.*M_PI_4 * weights[i] / (costerm*costerm);
+//    printf("    k = %g   w = %g\n",m_momenta[i],m_weights[i]);
+//    printf("    k = %g   k0 = %g\n",m_momenta[i],m_k0);
   }
 
   m_momenta[m_meshPoints] = m_k0;
+  m_weights[m_meshPoints] = 0.;
 
   m_momentaSet=true;
 }
@@ -139,12 +167,19 @@ void NucleonScattering::ListPoints(){
 */
 void NucleonScattering::FiniteSphere(double V,double a){
 m_V0 = V;
-m_a  = a;
+m_a  = a;// [fm]
 if(m_momentaSet){
   // allocate memory for potential matrix
   m_potential = (double **) matrix(m_meshPoints+1,m_meshPoints+1,sizeof(double));
+
   for(int i=0;i<m_meshPoints+1;i++){
     for(int j=0;j<m_meshPoints+1;j++){
+      m_potential[i][j] = 0.;
+    }
+  }
+
+  for(int i=0;i<m_meshPoints+1;i++){
+    for(int j=0;j<i;j++){
       if(m_momenta[i]!=m_momenta[j]){
       double num1 = m_momenta[j] * sin(m_momenta[i] * m_a) * cos(m_momenta[j] * m_a);
       double num2 = m_momenta[i] * cos(m_momenta[i] * m_a) * sin(m_momenta[j] * m_a);
@@ -155,9 +190,12 @@ if(m_momentaSet){
         m_potential[i][j] = 0.5*m_a - (sin(2.*m_momenta[i]*m_a)/(4.*m_momenta[i]));
 	m_potential[i][j] *= (m_V0 / pow(m_momenta[i],2.));
       }
+      m_potential[j][i] = m_potential[i][j];
 
 //      printf("V[%i][%i] = %g\n",i,j,m_potential[i][j]);
-    }
+    }// Close loop over j
+    m_potential[i][i] = 0.5*m_a - (sin(2.*m_momenta[i]*m_a)/(4.*m_momenta[i]));
+    m_potential[i][i] *= (m_V0 / pow(m_momenta[i],2.));
   }
 
 //  free_matrix((void **) m_potential);
@@ -170,25 +208,38 @@ else{cout << "Run MapPoints() first." << endl;return;}
 
 void NucleonScattering::PotentialNP(){
   const double u = 0.7;// [1/fm]
-  double Va = -10.463/u;// [MeV]
+//  const double u = 0.7*197.;// [MeV]
+  double Va = -10.463/(197.*u);// []
+//  double Va = -10.463/(u);// []
   double  a =  1.*u;
   a*=a;
-  double Vb = -1650.6/u;// [MeV]
+  double Vb = -1650.6/(197.*u);// []
+//  double Vb = -1650.6/(u);// []
   double  b = 4.*u;
   b*=b;
-  double Vc =  6484.3/u;// [MeV]
+  double Vc =  6484.3/(197.*u);// []
+//  double Vc =  6484.3/(u);// []
   double  c = 7.*u;
   c*=c;
 
 if(m_momentaSet){
   // allocate memory for potential matrix
   m_potential = (double **) matrix(m_meshPoints+1,m_meshPoints+1,sizeof(double));
+
   for(int i=0;i<m_meshPoints+1;i++){
     for(int j=0;j<m_meshPoints+1;j++){
-      double potA = log(pow(m_momenta[i]+m_momenta[j],2.) + a);
+      m_potential[i][j] = 0.;
+    }
+  }
+
+  cout << m_potential << endl;
+  for(int i=0;i<m_meshPoints+1;i++){
+    for(int j=0;j<=i;j++){
+      double potA = 0.;
+      potA       += log(pow(m_momenta[i]+m_momenta[j],2.) + a);
       potA       -= log(pow(m_momenta[i]-m_momenta[j],2.) + a);
       potA       *= Va / (4. * m_momenta[i]*m_momenta[j]);
-
+/**/
       double potB = log(pow(m_momenta[i]+m_momenta[j],2.) + b);
       potB       -= log(pow(m_momenta[i]-m_momenta[j],2.) + b);
       potB       *= Vb / (4. * m_momenta[i]*m_momenta[j]);
@@ -198,8 +249,10 @@ if(m_momentaSet){
       potC       *= Vc / (4. * m_momenta[i]*m_momenta[j]);
 
       m_potential[i][j] = potA + potB + potC;
-      printf("V[%i][%i] = %g\n",i,j,m_potential[i][j]);
+      m_potential[j][i] = m_potential[i][j];
+//      printf("  V[%i][%i] = %g",i,j,m_potential[i][j]);
     }
+//      cout << endl;
   }
   m_potentialSet=true;
 }
@@ -208,29 +261,71 @@ else{cout << "Run MapPoints() first." << endl;return;}
 }
 
 
+void NucleonScattering::PrintV(){
+if(m_potentialSet){
+ofstream vOut("../output/checkPotential.txt");
+  for(int i=0;i<=m_meshPoints;i++){
+    for(int j=0;j<=m_meshPoints;j++){
+//      printf("  V[%i][%i] = %g",i,j,m_potential[i][j]);
+      vOut << setw(15) << i << "  " 
+           << setw(15) << j << "  "
+	   << setw(15) << m_potential[i][j] << endl;
+    }
+  }
+vOut.close();
+}
+else {cout << "[V] not set." << endl;return;}
+}
+
+
 void NucleonScattering::SetMatrixA(){
 if(m_potentialSet){
-  const double TwoOverPi = 2. / M_PI;
-  double u0 = 0.;
+  cout << "Setting matrix A." << endl;
+  const double TwoOverPi = M_2_PI;
   // allocate memory for [A]
   m_A = (double **) matrix(m_meshPoints+1,m_meshPoints+1,sizeof(double));
+  cout << m_A << endl;
+  for(int i=0;i<m_meshPoints+1;i++){
+    for(int j=0;j<m_meshPoints+1;j++){
+      m_A[i][j] = 0.;
+    }
+  }
+
+  double u0 = 0.;
   for(int i=0;i<m_meshPoints;i++){
-    for(int j=0;j<m_meshPoints;j++){
+    u0 += m_weights[i]/(m_k0*m_k0 - pow(m_momenta[i],2.));
+  }
+  u0 *= (-1.)*TwoOverPi * m_mass * m_k0 * m_k0;
+  // now we have u0
+
+  for(int i=0;i<m_meshPoints+1;i++){
+    for(int j=0;j<m_meshPoints+1;j++){
       // Calculate uj terms
       double num   = m_mass* m_weights[j] * m_momenta[j]*m_momenta[j];
       double denom = (m_k0*m_k0 - pow(m_momenta[j],2.));
       double uj = TwoOverPi * num / denom;
       // Calculate elements of [A]
       m_A[i][j] = (-1.)*m_potential[i][j]*uj;
+      if(i == m_meshPoints || j == m_meshPoints){
+//        m_A[i][j] = 0.;
+        m_A[i][j] = (-1.)*m_potential[i][j]*u0;
+//        m_A[i][j] = 1.;
+      }
     }// Close j
     m_A[i][i] += 1.;
 
+    double epsilon = abs(m_momenta[i] - m_k0);
+    if(epsilon<m_epsilon && i!=m_meshPoints){
+      printf("WARNING: k0 close to a mesh point: %g\n",epsilon);
+      SetProxWarning();
+    }
     // Run sum over momenta for N+1 u term
-    u0 += m_k0*m_k0*m_weights[i]/(m_k0*m_k0 - pow(m_momenta[i],2.));
+//  cout << m_momenta[i] << endl;
+//  cout << m_weights[i] << endl;
+//  cout << u0 << endl << endl;
   }// Close i
 
-  u0 *= (-1.)*TwoOverPi*m_mass;
-  m_A[m_meshPoints][m_meshPoints] = 1. - m_potential[m_meshPoints][m_meshPoints]*u0;
+//  m_A[m_meshPoints][m_meshPoints] = 1. - m_potential[m_meshPoints][m_meshPoints]*u0;
   m_aSet=true;
 }
 }
@@ -238,17 +333,22 @@ if(m_potentialSet){
 
 void NucleonScattering::PrintA(){
 if(m_aSet){
+ofstream vOut("../output/checkA.txt");
   for(int i=0;i<=m_meshPoints;i++){
     for(int j=0;j<=m_meshPoints;j++){
-      printf("A[%i][%i] = %g\n",i,j,m_A[i][j]);
+      vOut << setw(15) << i << "  " 
+           << setw(15) << j << "  "
+	   << setw(15) << m_A[i][j] << endl;
     }
   }
+vOut.close();
 }
 else {cout << "[A] not set." << endl;return;}
 }
 
 
-void NucleonScattering::PhaseShift(){
+//void NucleonScattering::PhaseShift(){
+double NucleonScattering::PhaseShift(){
 if(m_aSet){
   // invert [A]
   inverse(m_A,m_meshPoints+1);
@@ -268,16 +368,21 @@ if(m_aSet){
     }
   }
 
-  printf("R(k0,k0) = %g\n",m_R[m_meshPoints][m_meshPoints]);
-  double delta = (-1.)*m_R[m_meshPoints][m_meshPoints]*m_mass*m_k0;
+//  printf("R(k0,k0) = %g\n",m_R[m_meshPoints][m_meshPoints]);
+  double delta = (-1.0)*m_R[m_meshPoints][m_meshPoints]*m_mass*m_k0;
   delta = atan(delta);
-  printf("delta = %g\n",delta);
+  printf("delta0 = %g\n",delta);
+  if(delta<0){delta += M_PI;}
+  printf("delta1 = %g\n",delta);
+  printf("delta1 = %g degrees\n",delta*180./M_PI);
+  return delta;
+//  return atan(tan(delta));
 }
-else{cout << "Run SetMatrixA() first." << endl;return;}
+else{cout << "Run SetMatrixA() first." << endl;return 0.;}
 }
 
 
-void NucleonScattering::AnalyticPhaseShift(){
+double NucleonScattering::AnalyticPhaseShift(){
 /*
   double K0  = sqrt(2.*m_mass*m_V0)/197.;
 
@@ -300,13 +405,22 @@ void NucleonScattering::AnalyticPhaseShift(){
 
   printf("K = %g, a = %g, k = %g\ndelta =% g\n",K0,m_a,m_k0,delta);
 */
-  double E = (m_k0*m_k0) / (2. * m_mass);
-  double delta = sqrt(E/(E+m_V0));
-  delta *= tan(m_a*sqrt(2.*m_mass*(E+m_V0)));
+//  double reducedMass = m_mass*m_mass/(m_mass+m_mass);
+//  double reducedMass = m_mass;
+  double v0 = -1. * m_V0;
+//  double E = (m_k0*m_k0) / (m_mass);
+  double delta = sqrt(m_E0/(m_E0+v0));
+  delta *= tan(m_a*sqrt(m_mass*(m_E0+v0)));
   delta = atan(delta);
-  delta -= m_a*sqrt(2.*m_mass*E);
+  if(delta<0){delta += M_PI;}
+  delta -= m_a*sqrt(m_mass*m_E0);
 
-  printf("m = %g\na = %g\nV0 = %g\n",m_mass,m_a,m_V0);
-  printf("k = %g\ndelta = %g\n",m_k0,atan(tan(delta)));
-  printf("R(k0,k0)= %g\n",-1.*tan(delta)/(m_mass*m_k0));
+//  printf("mu = %g\na = %g\nV0 = %g\n",reducedMass,m_a,m_V0);
+//  printf("k = %g\n",m_k0);
+  printf("E = %g\nk0 = %g\n",m_E0,m_k0);
+//  printf("R(k0,k0)= %g\n",-1.*tan(delta)/(m_mass*m_k0));
+  printf("AnalyticDelta = %g\n",delta);
+
+//  return atan(tan(delta));
+  return delta;
 }
