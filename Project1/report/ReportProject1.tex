@@ -16,9 +16,14 @@
 \affiliation{Department of Physics, Michigan State University}
 \begin{abstract}
 
+We solve the Lippman-Schwinger equation in momentum space for proton-neutron scattering to obtain the $l=0$
+phase shift $\delta _0$ as a function of lab energy. We calculate the Reaction matrix $R_l(k_0,k_0)$, of which the
+diagonal elemets are related to the phase shift for the corresponding momentum $k_0$. We compare our results to the $\delta _0$
+extracted from experiment (Nijmegen Group, PRC 48 792 (1993)).
+
 We solve the Lippman-Schwinger equation for proton-neutron scattering to obtain the $l=0$
 phase shift $\delta _0$ as a function of lab energy. We compare our results to the $\delta _0$
-extracted from experiment ...
+extracted from experiment (Nijmegen Group, PRC 48 792 (1993)).
 
 \end{abstract}
 \maketitle
@@ -45,16 +50,18 @@ the reaction matrix
 \end{split}
 \end{equation}
 where $E = k _0 ^2 / m$ is the total kinetic energy of the nucleons in the center-of-mass
-system and the momentum-space representation of the potential is used. We solve this
+system and the momentum-space representation of the potential $V(k',k)$ is used. We solve this
 equation numerically on a discretized domain where we've set the mesh points and
-weights using Gaussian quadrature. We map the points and weights from the interval of
+weights using Gaussian Legendre quadrature. We map the points and weights from the interval of
 the Legendre polynomials ($x \in [-1,1]$) to our desired interval $r \in [0,\infty)$ using the
-mapping
+following mapping
 
 \begin{align*}
           k_i&=const\times tan\left\{\frac{\pi}{4}(1+x_i)\right\} \\
           \omega_i&= const\frac{\pi}{4}\frac{w_i}{cos^2\left(\frac{\pi}{4}(1+x_i)\right)}.
 \end{align*}
+
+In order to ensure convergence, we performed calculations of the phase shifts vs. energy and showed that the curve converges to the analytic value for the infinite spherical well as more and more mesh points are added. This convergence can be seen in Figure 1. \\ \\
 
 We summarize the prescription for solving eq.~\ref{eq:ls1} numerically from
 \citet{lectureNotes}. First, we employ Cauchy's principle-value prescription
@@ -70,7 +77,7 @@ to re-write eq.~\ref{eq:ls1} in the form
    \label{eq:ls2}
 \end{split}
 \end{equation}
-which in the is represented on the discretized mesh as
+which is represented on the discretized mesh as
 
 \begin{equation}
 \begin{split}
@@ -106,9 +113,9 @@ and
 \label{eq:u0}
 \end{equation}
 
-We can now solve for the $R$ matrix by inverting $A$ and multiplying $V$
+We can now solve for the $R$ matrix by inverting the matrix $A$ and multiplying $V$
 by $A^{-1}$. Finally, the $R(N+1,N+1)$ element is related to the phase
-shift by
+shift for $k_0$ by
 
 \begin{equation}
 	R(k_0,k_0)=-\frac{tan\delta}{mk_0}
@@ -125,7 +132,7 @@ the Methods section.
 We currently have coded two potentials that can be used in the phase shift
 calculation. The first is a finite square well (eq.~\ref{eq:FSpot}) used to
 benchmark the program against the analytical result. The second is a
-parameterized neutron-proton interaction (eq.~\ref{eq:NPpot}).
+parameterized $^1S_0$ neutron-proton interaction (eq.~\ref{eq:NPpot}).
 
 \begin{equation}
 	V = -V_0 \Theta(a - r)
@@ -252,7 +259,7 @@ created and the correct sequence of methods is called in the \texttt{main} funct
 \section{Results and discussion}
 
 As a check, we calculate
-$\delta _0$ from the analytic formula
+$\delta _0$ from the analytic formula for the simple finite square well case phase shifts
 
 \begin{equation}
 	\delta _0(E) = \arctan \left [ \sqrt{\frac{E}{E+V_0}} \tan \left ( R \sqrt{2 \mu (E + V_0)}
@@ -263,6 +270,64 @@ where
 \begin{equation*}
 	E = \frac{k^2}{2 \mu}
 \end{equation*}
+
+
+\subsection{Variable Phase Approach}
+The variable phase approach relies on numerical methods to solve a differential equation.
+Without including tensor forces,
+it is limited to local potentials ($<r'|V|r>=^3\delta(r-r')V(r)$). However, the VPA is simple to use,
+and information about the potential is relatively easy to extract. For example, here we show
+that the presence of bound states (and the number of them) for a certain potential depth can
+be determined from VPA calculations, and short-range repulsive components of the potential can
+be inferred based on phase shift calculations at various energies.
+
+The Variable Phase Approach relies on an incoming momentum and the potential depth.
+Then, we inegrate over $r$ out to a sufficiently large radius ($R_max$) which is much larger
+than the range of the potential. 
+
+\begin{figure}
+\centering
+\includegraphics[width=0.45\textwidth]{figures/VPA_plot.pdf}
+\caption{Phase shift as a function of radius.}
+\label{fig:VPA}
+\end{figure}
+
+In Figure~\ref{fig:VPA}, we note that the phase shift becomes constant after a radius of 1;
+this is the radius of the square well potential. Because of the discontinuity in the potential at the
+edge of the square well, there is no ambiguity about how large we need to make our integration
+radius: obviously, as soon as we are looking beyond the radius of potential, the phase shift will
+stay a constant value. This tells us that any radius larger than 1 will give us a constant phase shift.
+
+We then examined the plots of $k\cot(\delta)$ and $\delta$ to test Levinson's Theorem,
+which states that the number of bound states can be calculated by looking at $\delta(E=0)$
+and the limit of $\delta$ as $E$ approaches $\inf$
+
+\begin{equation*}
+	\phi_l(0)-\phi_l(\inf)=n\pi
+\end{equation*}
+
+where $n$ is the number of bound states the potential can hold. For a well depth $V_c=1.0$,
+$\phi_l(0)=0$,  $\phi_l(\inf)=0$. This means that this well depth cannot produce a bound state
+with $l=0$. For a well depth $V_c=2.0$, however,  $\phi_l(0)=3.14$,  $\phi_l(\inf)=0$, meaning
+this deep of a square  well can hold 1 $l=0$ bound state.
+
+We add now a short-range repulsive potential and calculate the phase shifts using the VPA.The
+sign of a phase shift can characterize a potential as attractive ($\delta_0>0$) or repulsive
+($\delta_0<0$). Adding a repulsive term should begin to make a difference at higher
+energies/momenta, where the approaching particles can get close enough to ``see'' the effect of
+this core. At these higher energies, we should see the phase shift turn negative, indicating the
+repulsive character of the potential. At $V_c=0$ (no repulsive part of the potential - attractive
+only), and $\Phi_l(\infty)=0$ This indicates, as we have specified, a purely attractive potential.
+Around $V_c~18$, we can see the phase shift turning over at around $k=10$. As we increase
+the height of the repulsive potential, the phase shifts start to become negative at lower and
+lower energies, until at $V_c=100$ the phase shift turns negative at only $k=6$. 
+
+Because the nuclear force is repulsive at short distances ($V \rightarrow \infty, r \rightarrow 0$),
+we can use calculated phase shifts from experimental cross sections and estimate the range
+of the repulsive part of the nuclear force (Rc). The radius at which the phase shift changes is
+almost constant once $V_c$ gets larger, suggesting convergence to a single value, from which
+$R_c$ can then be extracted. 
+
 
 
 %\begin{table}
