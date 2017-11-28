@@ -3,17 +3,23 @@
 NucleonScattering::NucleonScattering(int n,double Elab=1.){
   m_momentaSet=false; m_potentialSet=false; m_aSet=false;
   m_meshPoints=n;
-//  m_k0 = k0;
-//  m_k0 = sqrt(Elab/83.);// [1/fm]
-//  cout << "k0 = " << m_k0 << endl;
+
+  // Set the lengths for the k and w arrays
   m_weights = new double [m_meshPoints+1];
   m_momenta = new double [m_meshPoints+1];
+
+  // Set the nucleon mass
   m_mass = 939./(197.);// [1/fm]
 //  m_mass = 939.;// [MeV]
 //  m_mass = 1.0;// [Mn]
-  m_E0 = Elab / 197.;// [1/fm]
-//  m_E0 = Elab;// [MeV]
-  m_k0 = sqrt(0.5*m_mass*(m_E0));// [1/fm]
+
+  // Convert the lab energy to [1/fm] units and compute k0
+  m_E0 = Elab/197.;// [1/fm]
+  m_k0 = sqrt(Elab / 83.);// [1/fm]
+
+
+  // Set flags to print stuff out
+  p_mapping = false;
 
   m_epsilon = 0.00001;
   proximityWarning=false;
@@ -25,12 +31,14 @@ NucleonScattering::~NucleonScattering(){
 //  free_matrix((void **) m_potential);
 };
 
+
+// Functions to set and get values for k0 and E0
 double NucleonScattering::GetK0(){ return m_k0; }
 void NucleonScattering::SetK0(double k0){
   // set observable point
   m_k0 = k0;
   m_momenta[m_meshPoints] = m_k0;
-  m_E0 = m_k0*m_k0*2./m_mass;
+  m_E0 = m_k0*m_k0*83.;// Elab
 }
 
 double NucleonScattering::GetV0(){ return m_V0; }
@@ -41,14 +49,18 @@ void NucleonScattering::SetA(double a){ m_a = a; }
 
 double NucleonScattering::GetE0(){ return m_E0; }
 void NucleonScattering::SetE0(double e0){
-  m_E0 = e0;
-  m_k0 = sqrt(0.5*m_mass*m_E0);
+  m_E0 = e0/197.;// [1/fm]
+  m_k0 = sqrt(m_E0/83.);
   m_momenta[m_meshPoints] = m_k0;
+  cout << "E0 = " << e0   << " MeV" << endl;
+  cout << "   = " << m_E0 << " 1/fm" << endl;
+  cout << "k0 = " << m_k0 << " 1/fm" << endl;
 }
 
 
 
-       /*
+       /* stolen from the libraries provided
+       **
        ** The function
        **              GaussLegendreQuadrature()
        ** takes the lower and upper limits of integration x1, x2, calculates
@@ -126,26 +138,22 @@ void NucleonScattering::GaussLegendreQuadrature(double x1, double x2, double x[]
  * are [fm^-1].
 */
 void NucleonScattering::MapPoints(){
-  // Call Morten's function to fill the weights and k points arrays
+  // Call function to fill the weights and k points arrays
 
   double *weights = new double [m_meshPoints];
   double *momenta = new double [m_meshPoints];
 
   GaussLegendreQuadrature(-1.,1.,momenta,weights,m_meshPoints);
 
-//  for(int i=0;i<m_meshPoints;i++){
-//    printf("momentum[%i] = %g\nweight[%i] = %g\n\n",i,momenta[i],i,weights[i]);
-//  }
-  // Map w and k from [-1,1] to [0,inf)
+  // Now map w and k from [-1,1] to [0,inf)
   for(int i=0;i<m_meshPoints;i++){
-//    printf("x = %g   w = %g",momenta[i],weights[i]);
+  if(p_mapping){ printf("x = %g   w = %g",momenta[i],weights[i]);}
     m_momenta[i] = tan(M_PI_4*(1.+momenta[i]));
 //    m_momenta[i] = 197.*tan(M_PI_4*(1.+momenta[i]));
     double costerm = cos(M_PI_4*(1.+momenta[i]));
     m_weights[i] = M_PI_4 * weights[i] / (costerm*costerm);
 //    m_weights[i] = 197.*M_PI_4 * weights[i] / (costerm*costerm);
-//    printf("    k = %g   w = %g\n",m_momenta[i],m_weights[i]);
-//    printf("    k = %g   k0 = %g\n",m_momenta[i],m_k0);
+  if(p_mapping){  printf("    k = %g   w = %g\n",m_momenta[i],m_weights[i]);}
   }
 
   m_momenta[m_meshPoints] = m_k0;
@@ -163,7 +171,7 @@ void NucleonScattering::ListPoints(){
 
 
 /* This function sets up the potential matrix for a
- * finite sphere of radius a fm and strength V
+ * finite sphere of radius a and strength V
 */
 void NucleonScattering::FiniteSphere(double V,double a){
 m_V0 = V;
@@ -192,13 +200,11 @@ if(m_momentaSet){
       }
       m_potential[j][i] = m_potential[i][j];
 
-//      printf("V[%i][%i] = %g\n",i,j,m_potential[i][j]);
     }// Close loop over j
     m_potential[i][i] = 0.5*m_a - (sin(2.*m_momenta[i]*m_a)/(4.*m_momenta[i]));
     m_potential[i][i] *= (m_V0 / pow(m_momenta[i],2.));
   }
 
-//  free_matrix((void **) m_potential);
   m_potentialSet=true;
 }
 else if(m_potentialSet){cout << "Potential already set." << endl;return;}
@@ -206,6 +212,11 @@ else{cout << "Run MapPoints() first." << endl;return;}
 }
 
 
+/* Function to set up the NP potential as a sum of 3 Yukawa
+ * potentials with ranges 1, 4, 7 times the inverse pion mass.
+ * The well depths Va, Vb, Vc are given in units of MeV, we
+ * convert them to unitless factors
+*/ 
 void NucleonScattering::PotentialNP(){
   const double u = 0.7;// [1/fm]
 //  const double u = 0.7*197.;// [MeV]
@@ -238,15 +249,15 @@ if(m_momentaSet){
       double potA = 0.;
       potA       += log(pow(m_momenta[i]+m_momenta[j],2.) + a);
       potA       -= log(pow(m_momenta[i]-m_momenta[j],2.) + a);
-      potA       *= Va / (4. * m_momenta[i]*m_momenta[j]);
+      potA       *= Va / (4. * m_momenta[i]*m_momenta[j]);// [fm^2]
 /**/
       double potB = log(pow(m_momenta[i]+m_momenta[j],2.) + b);
       potB       -= log(pow(m_momenta[i]-m_momenta[j],2.) + b);
-      potB       *= Vb / (4. * m_momenta[i]*m_momenta[j]);
+      potB       *= Vb / (4. * m_momenta[i]*m_momenta[j]);// [fm^2]
 
       double potC = log(pow(m_momenta[i]+m_momenta[j],2.) + c);
       potC       -= log(pow(m_momenta[i]-m_momenta[j],2.) + c);
-      potC       *= Vc / (4. * m_momenta[i]*m_momenta[j]);
+      potC       *= Vc / (4. * m_momenta[i]*m_momenta[j]);// [fm^2]
 
       m_potential[i][j] = potA + potB + potC;
       m_potential[j][i] = m_potential[i][j];
@@ -261,6 +272,7 @@ else{cout << "Run MapPoints() first." << endl;return;}
 }
 
 
+/* Print the potential matrix to a file */
 void NucleonScattering::PrintV(){
 if(m_potentialSet){
 ofstream vOut("../output/checkPotential.txt");
@@ -278,6 +290,13 @@ else {cout << "[V] not set." << endl;return;}
 }
 
 
+/* Compute the matrix elements A(i,j). There are four cases to
+ * consider :
+ * (1) A(i,j) = DiracDelta(i,j) - V(i,j) * u(j); i,j from 1..N
+ * (2) A(N+1,j) = -V(i,j) * u(j); j from 1..N (last row)
+ * (3) A(i,N+1) = -V(i,N+1) * u(N+1); i from 1..N (last column)
+ * (4) A(N+1,N+1) = 1 - V(N+1,N+1) * u(N+1) (bottom right corner)
+*/
 void NucleonScattering::SetMatrixA(){
 if(m_potentialSet){
   cout << "Setting matrix A." << endl;
@@ -291,39 +310,44 @@ if(m_potentialSet){
     }
   }
 
+  // calculate u(N+1)
   double u0 = 0.;
   for(int i=0;i<m_meshPoints;i++){
     u0 += m_weights[i]/(m_k0*m_k0 - pow(m_momenta[i],2.));
   }
   u0 *= (-1.)*TwoOverPi * m_mass * m_k0 * m_k0;
-  // now we have u0
+  // now we have u(N+1)
 
+  // compute for cases (1) and (2)
   for(int i=0;i<m_meshPoints+1;i++){
-    for(int j=0;j<m_meshPoints+1;j++){
+    for(int j=0;j<m_meshPoints;j++){
       // Calculate uj terms
       double num   = m_mass* m_weights[j] * m_momenta[j]*m_momenta[j];
       double denom = (m_k0*m_k0 - pow(m_momenta[j],2.));
       double uj = TwoOverPi * num / denom;
       // Calculate elements of [A]
       m_A[i][j] = (-1.)*m_potential[i][j]*uj;
-      if(i == m_meshPoints || j == m_meshPoints){
-//        m_A[i][j] = 0.;
-        m_A[i][j] = (-1.)*m_potential[i][j]*u0;
-//        m_A[i][j] = 1.;
-      }
-    }// Close j
+    }
     m_A[i][i] += 1.;
+  }
 
-    double epsilon = abs(m_momenta[i] - m_k0);
-    if(epsilon<m_epsilon && i!=m_meshPoints){
+  // case (3)
+  for(int i=0;i<m_meshPoints;i++){
+    m_A[i][m_meshPoints] = (-1.)*m_potential[i][m_meshPoints]*u0;
+/*    
+    double epsilon = abs(pow(m_momenta[j],2.) - pow(m_k0,2.));
+    if(epsilon<m_epsilon){
       printf("WARNING: k0 close to a mesh point: %g\n",epsilon);
       SetProxWarning();
     }
-    // Run sum over momenta for N+1 u term
-//  cout << m_momenta[i] << endl;
-//  cout << m_weights[i] << endl;
-//  cout << u0 << endl << endl;
-  }// Close i
+*/
+    
+  }
+
+  // case (4) - the last element of [A]
+  m_A[m_meshPoints][m_meshPoints] = 1. - m_potential[m_meshPoints][m_meshPoints]*u0;
+
+
 
 //  m_A[m_meshPoints][m_meshPoints] = 1. - m_potential[m_meshPoints][m_meshPoints]*u0;
   m_aSet=true;
@@ -347,6 +371,35 @@ else {cout << "[A] not set." << endl;return;}
 }
 
 
+void NucleonScattering::PrintIdentityHopefully(){
+if(m_aSet){
+  ofstream iOut("../output/checkIdentity.txt");
+  double **aInverse = (double **) matrix(m_meshPoints+1,m_meshPoints+1,sizeof(double));
+  for(int i=0;i<m_meshPoints+1;i++){
+    for(int j=0;j<m_meshPoints+1;j++){
+      aInverse[i][j] = m_A[i][j];
+    }
+  }
+  inverse(aInverse,m_meshPoints+1);
+  for(int i=0;i<m_meshPoints+1;i++){
+    for(int j=0;j<m_meshPoints+1;j++){
+      double cell = 0.;
+      for(int k=0;k<m_meshPoints+1;k++){
+        cell += m_A[i][k]*aInverse[k][j];
+      }
+      iOut << setw(18) << i
+           << setw(18) << j
+	   << setw(18) << cell << endl;;
+    }
+  }
+  iOut.close();
+}
+else{cout << "Set A first." << endl;}
+}
+
+
+/* Calculate the phase shift from R(N+1,N+1) */
+
 //void NucleonScattering::PhaseShift(){
 double NucleonScattering::PhaseShift(){
 if(m_aSet){
@@ -354,14 +407,11 @@ if(m_aSet){
   inverse(m_A,m_meshPoints+1);
   // allocate memory for [R] and initialize
   m_R = (double **) matrix(m_meshPoints+1,m_meshPoints+1,sizeof(double));
-  for(int i=0;i<m_meshPoints+1;i++){
-    for(int j=0;j<m_meshPoints+1;j++){
-      m_R[i][j] = 0.;
-    }
-  }
+
   // perform matrix multiplication
   for(int i=0;i<m_meshPoints+1;i++){
     for(int j=0;j<m_meshPoints+1;j++){
+      m_R[i][j] = 0.;
       for(int k=0;k<m_meshPoints+1;k++){
         m_R[i][j] += m_A[i][k] * m_potential[k][j];
       }
@@ -370,11 +420,18 @@ if(m_aSet){
 
 //  printf("R(k0,k0) = %g\n",m_R[m_meshPoints][m_meshPoints]);
   double delta = (-1.0)*m_R[m_meshPoints][m_meshPoints]*m_mass*m_k0;
+//  printf("tan(delta) = %g\n",delta);
   delta = atan(delta);
-  printf("delta0 = %g\n",delta);
-  if(delta<0){delta += M_PI;}
-  printf("delta1 = %g\n",delta);
-  printf("delta1 = %g degrees\n",delta*180./M_PI);
+//  printf("delta0 = %g\n",delta);
+  /*
+  if(delta<0){
+    delta += M_PI;
+    printf("delta1 = %g\n",delta);
+  }
+  */
+//  delta = atan(tan(delta));
+//  printf("atan(tan(delta)) = %g\n",atan(tan(delta)));
+//  printf("delta1 = %g degrees\n",delta*180./M_PI);
   return delta;
 //  return atan(tan(delta));
 }

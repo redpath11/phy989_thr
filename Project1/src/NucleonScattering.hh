@@ -16,6 +16,8 @@ private:
   bool m_momentaSet;
   bool m_potentialSet;
   bool m_aSet;
+
+  bool p_mapping;
   bool proximityWarning;
   double m_epsilon;
   
@@ -35,7 +37,7 @@ private:
 public:
 
   NucleonScattering(int,double);
-  virtual ~NucleonScattering();
+  ~NucleonScattering();
 
   double GetE0();
   void SetE0(double);
@@ -62,6 +64,7 @@ public:
   void ListPoints();
   void PrintV();
   void PrintA();
+  void PrintIdentityHopefully();
 
   void GaussLegendreQuadrature(
     double x1,
