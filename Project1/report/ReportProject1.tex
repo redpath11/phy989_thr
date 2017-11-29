@@ -1,5 +1,6 @@
 \documentclass[10pt,showpacs,preprintnumbers,footinbib,amsmath,amssymb,aps,prl,twocolumn,groupedaddress,superscriptaddress,showkeys]{revtex4-1}
 \usepackage{graphicx}
+\usepackage{float}
 \usepackage{dcolumn}
 \usepackage{bm}
 \usepackage[colorlinks=true,urlcolor=blue,citecolor=blue]{hyperref}
@@ -11,25 +12,47 @@
 
 
 \begin{document}
-\title{Project 1}
+\title{Neutron-proton $l=0$ scattering}
 \author{Thomas Redpath and Dayah Chrisman}
 \affiliation{Department of Physics, Michigan State University}
 \begin{abstract}
 
-We solve the Lippman-Schwinger equation in momentum space for proton-neutron scattering to obtain the $l=0$
-phase shift $\delta _0$ as a function of lab energy. We calculate the Reaction matrix $R_l(k_0,k_0)$, of which the
-diagonal elemets are related to the phase shift for the corresponding momentum $k_0$. We compare our results to the $\delta _0$
-extracted from experiment (Nijmegen Group, PRC 48 792 (1993)).
-
 We solve the Lippman-Schwinger equation for proton-neutron scattering to obtain the $l=0$
-phase shift $\delta _0$ as a function of lab energy. We compare our results to the $\delta _0$
-extracted from experiment (Nijmegen Group, PRC 48 792 (1993)).
+phase shift $\delta _0$ as a function of lab energy. We use a sum of three Yukawa potentials
+with empirically derived parameters to approximate the $np$ interaction and set up a matrix
+equation for the reaction matrix. We solve this matrix equation numerically to extract
+$\delta_0$. Our results agree with the experimental phase shifts tabulated in \citet{Nijmegen}
+to within 10\% for lab energies at or below 100 MeV. Furthermore, our calculations are stable
+with 50 mesh points.
+
 
 \end{abstract}
 \maketitle
 
 \section{Introduction}
 
+Measuring the final states of two nucleons after they interact provides information about
+the nature of their interaction. One way to summarize the information we get from these
+scattering experiments is through the phase shift - which can be roughly described as a
+shift in the scattered wavefunction relative to the incoming one. In this project, we study
+the behavior of the $l=0$ phase shift ($\delta _0$) as a function of energy for a toy
+neutron-proton ($np$) interaction model.
+
+Qualitatively, we say that a repulsive potential will result in a negative
+phase shift - the scattered wavefunction is ``pushed out'' and that an attractive potential
+will give a positive phase shift. Thus by analyzing experimental data we can deduce whether
+a potential is repulsive, attractive, or a mixture of both. The nuclear potential is negligible at
+long ranges ($r >$ a few fm), attractive at intermediate ranges ($r \sim 1$ fm) and repulsive
+at very short distances ($r < 0.5$ fm). By examining the phase shift as a function of energy,
+we can see at which energies the incoming particle is ``repelled'' (giving a negative phase
+shift). This can give us an idea of the range of the repulsive inner part of the potential, since
+the particle needs enough energy to approach the inner, repulsive part of the potential.
+
+We organize this report as follows: first we summarize the algorithms we need to solve the
+problem numerically. We then describe the framework we used to carry out our calculations.
+Next, we present the results of our calcuations and some qualitative insights derived from
+considering the variable phase approach. Finally, we summarize our findings and offer some
+comments about possible extensions of our framework.
 
 
 
@@ -61,8 +84,6 @@ following mapping
           \omega_i&= const\frac{\pi}{4}\frac{w_i}{cos^2\left(\frac{\pi}{4}(1+x_i)\right)}.
 \end{align*}
 
-In order to ensure convergence, we performed calculations of the phase shifts vs. energy and showed that the curve converges to the analytic value for the infinite spherical well as more and more mesh points are added. This convergence can be seen in Figure 1. \\ \\
-
 We summarize the prescription for solving eq.~\ref{eq:ls1} numerically from
 \citet{lectureNotes}. First, we employ Cauchy's principle-value prescription
 to re-write eq.~\ref{eq:ls1} in the form
@@ -88,7 +109,7 @@ R(k,k') &= V(k,k') +\frac{2}{\pi}\sum_{j=1}^N\frac{\omega_jk_j^2V(k,k_j)R(k_j,k'
 \end{equation}
 where there are $N$ mesh points from the Gaussian quadrature mapping
 and one point that is the chosen ``observable'' point corresponding to the
-relative momentum for which we want to calculate the phase shift. Total
+relative momentum for which we want to calculate the phase shift. In total
 there are $(N+1)$ mesh points.
 
 Next, we organize eq.~\ref{eq:ls3} as a matrix equation by defining a
@@ -149,7 +170,7 @@ $V_c=6484.3$ MeV and $c=7$.
 
 For both potentials, we find the momentum-space representations using
 the Fourier-Bessel transform, we specialize to the case $l=0$ since we're
-only aiming to calculate the $\delta_0$. For the finite well potential we
+only aiming to calculate $\delta_0$. For the finite well potential we
 have
 
 \begin{align*}
@@ -158,14 +179,31 @@ have
 	&= \frac{V_0}{k k'} \int_0^a \sin(kr) \sin(k'r) dr\\
 	&= \frac{V_0}{k k'} \frac{k' \sin(ka) \cos(k'a) - k \cos(ka) \sin(k'a)}{k^2 - k'^2}
 \end{align*}
-This results in 
+and
+\begin{equation*}
+	V(k,k) = \frac{V_0}{k^2} \left ( \frac{a}{2} - \frac{2 \sin (ka)}{4 k} \right )
+\end{equation*}
+in the case $k=k'$. For the $np$ model, the momentum space representation
+is
 
-\begin{equation}
-	V(k,k') = \frac{k_j \sin()\cos() + \cos()\sin()}{}
-\end{equation}
+\begin{equation*}
+V (k,k') =\frac{V_{\eta}}{4\mu k k'}\ln\left[\frac{(\mu \eta)^{2}+(k+k')^{2}}
+{(\mu\eta)^{2}+(k-k')^{2}}\right]
+\end{equation*}
 
 
-\subsection{Reaction Matrix}
+\subsection{$A$ Matrix}
+
+Care must be taken when setting up the matrix $A$ to solve for the reaction
+matrix. Pedantically, there are four sections of this matix that must be treated
+separately.
+
+\begin{enumerate}
+	\item $A(i,j) = \delta _{i,j} - V(i,j) u_j$ for $i,j \in 1..N$
+	\item $A(N+1,j) = -V(N+1,j) u_j$ for $j \in 1..N$, the last row
+	\item $A(i,N+1) = -V(i,N+1) u_{N+1}$ for $i \in 1..N$, the last column
+	\item $A(N+1,N+1) = 1 - V(N+1,N+1) u_{N+1}$ bottom right corner
+\end{enumerate}
 
 
 %\subsection*{The General Algorithm}
@@ -210,12 +248,17 @@ integration domain and several ancillary variables that specify the nucleon mass
 parameters. Application of the algorithms sketched in the previous section is carried out in a series of
 member functions that (a) set up the mesh points and weights (b) set up the potential matrix (c) set
 up the $A$ matrix (d) invert $A$ to get $R$ then extract $\delta _0$. In principle,
-different functions may be used to set up different potentials; we coded one for the model NN interaction
+different functions may be used to set up different potentials; we coded one for the model $np$ interaction
 given above and one for a finite spherical well to check that we recover the analytic result.
 This class is defined in the source
-file \texttt{NucleonScattering.cpp} and \texttt{NucleonScattering.hh}. An instance of the class is
+files \texttt{NucleonScattering.cpp} and \texttt{NucleonScattering.hh}. An instance of the class is
 created and the correct sequence of methods is called in the \texttt{main} function defined in
-\texttt{main.cpp}.
+\texttt{main.cpp}. We include three versions of \texttt{main.cpp} that (1) calculate $\delta_0$
+for a single energy, (2) loop over energies and calculate $\delta_0$ for the a range of energies
+using the finite spherical potential and (3) run the calculation for the experimental energies.
+The results from cases (2) and (3) are saved to the files \texttt{output/FiniteSpherel0ps.txt}
+and \texttt{output/l0ps.txt} repectively. We generated FIG.~\ref{fig:analyticDelta} and
+FIG.~\ref{fig:NPexp} from these files.
 
 
 %% -------------------------- CODE LISTING -------------------------- %%
@@ -256,10 +299,21 @@ created and the correct sequence of methods is called in the \texttt{main} funct
  %\lstinputlisting[linerange={78-90}]{../src/proj1.cc}
 
 
+\begin{figure*}
+	\includegraphics[width=\textwidth]{figures/stability.pdf}
+	\caption{Results for the finite square well ($V_0 = -0.5$ fm$^2$, $a = 1.$ fm) $l=0$
+	phase shifts  as a function of lab energy. In each plot, our calculations are represented by the
+	blue points and the analytic results are plotted in red. The black points in the lower plots
+	show the deviation of our calculation from the analytic result. From left to right we plot the
+	results of our calculation for N=5, N=50 and N=100 to show convergence for 50 mesh points.}
+	\label{fig:analyticDelta}
+\end{figure*}
+
+
 \section{Results and discussion}
 
-As a check, we calculate
-$\delta _0$ from the analytic formula for the simple finite square well case phase shifts
+As a check, we calculate $\delta _0$ from the analytic formula for the simple finite square
+well.
 
 \begin{equation}
 	\delta _0(E) = \arctan \left [ \sqrt{\frac{E}{E+V_0}} \tan \left ( R \sqrt{2 \mu (E + V_0)}
@@ -270,31 +324,48 @@ where
 \begin{equation*}
 	E = \frac{k^2}{2 \mu}
 \end{equation*}
+The results are shown for three different numbers of mesh points ($N=5,N=50,N=100$) in
+FIG.~\ref{fig:analyticDelta}. In terms of convergence, our result is stable with $N=50$ points.
+The overall agreement with the analytic result is worse for higher lab energies because there
+are fewer mesh points at these higher energies. The way we map our integration points from
+the interval $[-1,1]$ to $[0,\infty)$ results in a higher density of mesh points at lower energies.
+Therefore, we expect the calculation to be more accurate at lower energies. FIG.~
+\ref{fig:analyticDelta}
+shows that our results agree with the analytic value to within 25\% for $E_{\mathrm{lab}}$ less
+than 100 MeV.
 
-\begin{figure}
+In FIG.~\ref{fig:NPexp}, we plot our calculated phase shifts next to the experimental results
+tabulated in \citep{Nijmegen}. For lab energies at and below 100 MeV, we see good agreement
+with the data ($< 10$\%), suggesting that our model potential best reproduces the underlying
+physics at lower energies. The model also reproduces the point ($E_{\mathrm{lab}} = 250$ MeV)
+where $\delta_0$ turns negative and we start to probe the repulsive core of the interaction.
+
+\begin{figure}[H]
 \centering
 	\includegraphics[width=0.5\textwidth]{figures/phy989_NPexp.eps}
 	\caption{A comparison of $\delta _0$ calculated with our code
 	(blue points) to the experimental values tabulated in \citep{Nijmegen} (error
 	bars). The top panel shows the phase shifts in degrees and the bottom panel
 	plots the \% difference between our calculated values and the tabulated
-	experimental results.}
+	experimental results. We used 50 mesh points for the calculation.}
 	\label{fig:NPexp}
 \end{figure}
 
 
 \subsection{Variable Phase Approach}
-The variable phase approach relies on numerical methods to solve a differential equation.
-Without including tensor forces,
-it is limited to local potentials ($<r'|V|r>=^3\delta(r-r')V(r)$). However, the VPA is simple to use,
+The variable phase approach (VPA) relies on numerical methods to solve the differential equation.
+
+\[
+\frac{d\delta(k,r)}{dr} = -\frac{1}{k} 2M V(r) \sin^2[kr + \delta(k,r)]
+\]
+for $\delta(k,r)$. The VPA is simple to use,
 and information about the potential is relatively easy to extract. For example, here we show
 that the presence of bound states (and the number of them) for a certain potential depth can
-be determined from VPA calculations, and short-range repulsive components of the potential can
+be quickly determined, and short-range repulsive components of the potential can
 be inferred based on phase shift calculations at various energies.
 
-The Variable Phase Approach relies on an incoming momentum and the potential depth.
-Then, we inegrate over $r$ out to a sufficiently large radius ($R_max$) which is much larger
-than the range of the potential. 
+The VPA truncates a realistic potential at some cutoff radius $\rho$.
+Then, we inegrate over $r$ out to a sufficiently large radius ($R_{\mathrm{max}} > \rho$). 
 
 \begin{figure}
 \centering
@@ -302,84 +373,59 @@ than the range of the potential.
 \caption{Phase shift as a function of radius.}
 \label{fig:VPA}
 \end{figure}
-
-In Figure~\ref{fig:VPA}, we note that the phase shift becomes constant after a radius of 1;
-this is the radius of the square well potential. Because of the discontinuity in the potential at the
+In FIG.~\ref{fig:VPA}, we note that the phase shift becomes constant after a radius of 1;
+this is the radius of the square well potential we used. Because of the discontinuity in the potential at the
 edge of the square well, there is no ambiguity about how large we need to make our integration
 radius: obviously, as soon as we are looking beyond the radius of potential, the phase shift will
-stay a constant value. This tells us that any radius larger than 1 will give us a constant phase shift.
+converge to a constant value. This tells us that an integration radius greater than the square well 
+will be sufficient for the phase shift to converge.
 
 We then examined the plots of $k\cot(\delta)$ and $\delta$ to test Levinson's Theorem,
 which states that the number of bound states can be calculated by looking at $\delta(E=0)$
-and the limit of $\delta$ as $E$ approaches $\inf$
+and the limit of $\delta$ as $E$ approaches $\infty$
 
 \begin{equation*}
-	\phi_l(0)-\phi_l(\inf)=n\pi
+	\phi_l(0)-\phi_l(\infty)=n\pi
 \end{equation*}
-
 where $n$ is the number of bound states the potential can hold. For a well depth $V_c=1.0$,
-$\phi_l(0)=0$,  $\phi_l(\inf)=0$. This means that this well depth cannot produce a bound state
-with $l=0$. For a well depth $V_c=2.0$, however,  $\phi_l(0)=3.14$,  $\phi_l(\inf)=0$, meaning
-this deep of a square  well can hold 1 $l=0$ bound state.
+$\phi_l(0)=0$,  $\phi_l(\infty)=0$. This means that this well cannot bind any states
+with $l=0$. For a well depth $V_c=2.0$, $\phi_l(0)=3.14$,  $\phi_l(\infty)=0$,
+meaning that at this depth, the well can hold one $l=0$ bound state.
 
 We add now a short-range repulsive potential and calculate the phase shifts using the VPA.The
-sign of a phase shift can characterize a potential as attractive ($\delta_0>0$) or repulsive
+sign of the phase shift can characterize a potential as attractive ($\delta_0>0$) or repulsive
 ($\delta_0<0$). Adding a repulsive term should begin to make a difference at higher
-energies/momenta, where the approaching particles can get close enough to ``see'' the effect of
-this core. At these higher energies, we should see the phase shift turn negative, indicating the
-repulsive character of the potential. At $V_c=0$ (no repulsive part of the potential - attractive
-only), and $\Phi_l(\infty)=0$ This indicates, as we have specified, a purely attractive potential.
-Around $V_c~18$, we can see the phase shift turning over at around $k=10$. As we increase
+energies where the approaching particles can get close enough to ``see'' the effect of
+the repulsive core. At these higher energies, we should see the phase shift turn negative,
+indicating the repulsive character of the potential.
+
+With $V_c=0$ there is no repulsive part and the potential is purely attractive, we get that
+$\phi_l(\infty)=0$. This indicates, as we predicted, a purely attractive potential.
+Around $V_c=18$, we can see the phase shift turning over at around $k=10$. As we increase
 the height of the repulsive potential, the phase shifts start to become negative at lower and
 lower energies, until at $V_c=100$ the phase shift turns negative at only $k=6$. 
 
-Because the nuclear force is repulsive at short distances ($V \rightarrow \infty, r \rightarrow 0$),
-we can use calculated phase shifts from experimental cross sections and estimate the range
-of the repulsive part of the nuclear force (Rc). The radius at which the phase shift changes is
-almost constant once $V_c$ gets larger, suggesting convergence to a single value, from which
-$R_c$ can then be extracted. 
-
-
-
-%\begin{table}
-%\centering
-%	\begin{tabular}{ c | c c c }
-%	 & \multicolumn{3}{c}{Time [$\mu$s]}\\
-%	$n$ & General & Specialized & LU Decomp\\
-%\hline
-%	$10^{1}$ & 2       & 2       & 10 \\
-%	$10^{2}$ & 7       & 5       & 3500 \\
-%	$10^{3}$ & 62      & 50      & 1700000\\
-%	$10^{4}$ & 600     & 555     & \\
-%	$10^{5}$ & 6100    & 5100    & \\
-%	$10^{6}$ & 32500   & 28300   & \\
-%	$10^{7}$ & 244000  & 205000  & \\
-%\hline
-%	\end{tabular}
-%	\caption{Summary of execution times for the algorithms used.
-%	We note that the execution time can vary from run to run due
-%	to variations in CPU load. The execution time also varies
-%	from platform to platform.}
-%	\label{tab:speedresults}
-%\end{table}
-
-
-%\begin{figure*}
-%\centering
-%	\includegraphics{figures/sols.pdf}
-%	\caption{A comparison of the results from the numerical solution
-%	(with various choices for the number of grid points) to the exact
-%	result. The blue curve plots the numerical result with 10 grid
-%	points, the green curve uses 100 grid points and the red curve
-%	uses 1000 grid points. The black curve plots the exact result.
-%	Good agreement with the exact result is obtained once 100 grid
-%	points are used.}
-%	\label{fig:compexact}
-%\end{figure*}
+Because the nuclear force is repulsive at short distances ($V \rightarrow \infty$ for $r \rightarrow 0$),
+we can use calculated phase shifts from experimental cross sections to estimate the range
+of the repulsive part of the nuclear force ($R_c$). The incoming momenta/energy ($k$) at which the
+phase shift changes gives us an estimate of the length scale at which the repulsive piece of the
+interaction becomes dominant.
 
 
 
 \section{Conclusions}
+
+In this project, we solved the Lippmann-Schwinger equation numerically to compute
+the $l=0$ phase shifts for a model $np$ potential. Our calculations are stable with
+$N=50$ mesh points. We see decent agreement with experimental data suggesting
+that our model does a reasonable job of describing the underlying physics. Furthermore,
+we explored the variable phase approximation to gain an intuitive understanding of
+the relationship between the sign of $\delta_0$ and the sign of the potential. The
+VPA also provides us with a simple framework to demonstrate Levinson's theorem.
+
+We can easily incorporate any potential model into this framework by coding
+the appropriate form of the potential. In this way, we could extend our analysis
+to higher values of $l$ or other models for the interaction.
 
 %\begin{thebibliography}{99}
 %\bibitem{miller2006} G.~A.~Miller, A.~K.~Opper, and E.~J.~Stephenson, Annu.~Rev.~Nucl.~Sci.~{\bf 56}, 253 (2006).
