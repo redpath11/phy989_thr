@@ -56,155 +56,105 @@ comments about possible extensions of our framework.
 
 \section{Theory and algorithms}\label{sec:theory}
 
-\subsection{Lippman-Schwinger Equation}
+\subsection{Pionless EFT}
 
-In order to calculate the phase shifts $\delta_l$, we need to solve the Schr{\"o}dinger equation
-for the neutron-proton system with $E > 0$. This can be expressed as an integral equation for
-the reaction matrix
+To begin building our pionless effective field theory, we take our underlying theory, to be
+the three-Yukawa $np$ model from the previous project. This potential is spin- and
+isospin-independent, so the leading order term in the EFT potential has the simple form
+
+\begin{equation}
+	V^\mathrm{LO}_{^1S_0}(p',p)=C_0.
+\end{equation}
+
+To avoid UV divergences when solving the Lippman-Schwinger equation with this potential,
+we use a smooth regulator function
 
 \begin{equation}
 \begin{split}
-    R_l(k,k') &= V_l(k,k') + \\
-  &\frac{2}{\pi}\hat{P}
-                \int_0^{\infty}dqq^2V_l(k,q)\frac{1}{E-q^2/m}R_l(q,k'),
-   \label{eq:ls1}
+	f_{\Lambda}(p) = \exp{[-p^4/\Lambda^4]}
 \end{split}
 \end{equation}
-where $E = k _0 ^2 / m$ is the total kinetic energy of the nucleons in the center-of-mass
-system and the momentum-space representation of the potential $V(k',k)$ is used. We solve this
-equation numerically on a discretized domain where we've set the mesh points and
-weights using Gaussian Legendre quadrature. We map the points and weights from the interval of
-the Legendre polynomials ($x \in [-1,1]$) to our desired interval $r \in [0,\infty)$ using the
-following mapping
+so that the potential we feed into our LS solver has the form
 
-\begin{align*}
-          k_i&=const\times tan\left\{\frac{\pi}{4}(1+x_i)\right\} \\
-          \omega_i&= const\frac{\pi}{4}\frac{w_i}{cos^2\left(\frac{\pi}{4}(1+x_i)\right)}.
-\end{align*}
-
-We summarize the prescription for solving eq.~\ref{eq:ls1} numerically from
-\citet{lectureNotes}. First, we employ Cauchy's principle-value prescription
-to re-write eq.~\ref{eq:ls1} in the form
 
 \begin{equation}
 \begin{split}
-    R(k,k') &= V(k,k') + \\
-   & \frac{2}{\pi}
-                \int_0^{\infty}dq
-                \frac{q^2V(k,q)R(q,k')-k_0^2V(k,k_0)R(k_0,k')  }
-                     {(k_0^2-q^2)/m},
-   \label{eq:ls2}
+	V(p',p)\Rightarrow f_{\Lambda}(p')V(p',p)f_{\Lambda}(p).
 \end{split}
-\end{equation}
-which is represented on the discretized mesh as
+\end{equation} 
+
+
+
+We start out choosing our cutoff to be $k\sim m_{\pi}/2$, and fit $C_0$ to the low-energy
+phase shifts. We then add the next-to-leading-order term (NLO):
 
 \begin{equation}
 \begin{split}
-R(k,k') &= V(k,k') +\frac{2}{\pi}\sum_{j=1}^N\frac{\omega_jk_j^2V(k,k_j)R(k_j,k')}{(k_0^2-k_j^2)/m}- \\
-  & \frac{2}{\pi}k_0^2V(k,k_0)R(k_0,k')\sum_{n=1}^N\frac{\omega_n}{(k_0^2-k_n^2)/m},
+%\[
+V^\mathrm{NLO}_{^1S_0}(p',p)=C_2(p^2 + p'^2),
+%\]
 \end{split}
-\label{eq:ls3}
 \end{equation}
-where there are $N$ mesh points from the Gaussian quadrature mapping
-and one point that is the chosen ``observable'' point corresponding to the
-relative momentum for which we want to calculate the phase shift. In total
-there are $(N+1)$ mesh points.
 
-Next, we organize eq.~\ref{eq:ls3} as a matrix equation by defining a
-matrix $A$
-
-\begin{equation*}
-	A_{i,j} = \delta _{i,j} - V(k_i,k_j)u_j
-\end{equation*}
-where
+And subsequently the next-to-next-to-leading-order term (NNLO):
 
 \begin{equation}
-     u_j=\frac{2}{\pi}
-         \frac{\omega_jk_j^2}{(k_0^2-k_j^2)/m}\hspace{1cm}
-         j=1,N
-\label{eq:uj}
+\begin{split}
+%\[
+V^\mathrm{NNLO}_{^1S_0}(p',p)=C_4(p^4 + p'^4) + C'_4 p^2p'^2,
+%\]
+\end{split}
 \end{equation}
-and
+
+After fitting these four coefficients, we repeat the NLO pionless EFT fitting procedures
+with different cutoff momenta $\Lambda$ to examine cutoff dependence of our phase
+shift calculations.
+
+Finally, we add in a one-pion exchange term in order to create an EFT that works at
+higher energies, with a cutoff now at $k\sim m_{\pi}$ . We use a simple toy model
+(no spin or isospin dependence) to include one pion exchange: 
 
 \begin{equation}
-     u_{N+1}=-\frac{2}{\pi}
-          \sum_{j=1}^N\frac{k_0^2\omega_j}{(k_0^2-k_j^2)/m}.
-\label{eq:u0}
+\begin{split}
+%\[
+V^\mathrm{LO}(p,p')= V_{\pi}(p,p') + C_0\,
+%\]
+\end{split}
 \end{equation}
-
-We can now solve for the $R$ matrix by inverting the matrix $A$ and multiplying $V$
-by $A^{-1}$. Finally, the $R(N+1,N+1)$ element is related to the phase
-shift for $k_0$ by
-
+while at NLO our potential takes the form
 \begin{equation}
-	R(k_0,k_0)=-\frac{tan\delta}{mk_0}
-	\label{eq:PhaseShift}
+\begin{split}
+%\[
+V^\mathrm{NLO}(p,p')= V_{\pi}(p,p') + C_0 + C_2(p^2+p'^2)\,,
+%\]
+\end{split}
 \end{equation}
-Using this prescription and some model for the interaction (see next
-subsection), we can calculate $\delta$ for scattering at some incident energy.
-We describe the \texttt{C++} code used to make these calculations in
-the Methods section.
 
+We now refit the phase shifts at low energy to find $C_0$ and $C_2$ for out EFT including pions.
 
-\subsection{Potential Model}
+\subsection{Least-Squares Fitting}
 
-We currently have coded two potentials that can be used in the phase shift
-calculation. The first is a finite square well (eq.~\ref{eq:FSpot}) used to
-benchmark the program against the analytical result. The second is a
-parameterized $^1S_0$ neutron-proton interaction (eq.~\ref{eq:NPpot}).
-
+We use a least-squares fit method to find the coefficients for our EFT. We use $\chi^2$ as a
+measure of the quality of the fit, which we aim to minimize the following quantity with respect
+to the fitting parameters, $a$ and $b$.
 \begin{equation}
-	V = -V_0 \Theta(a - r)
-	\label{eq:FSpot}
+\begin{split}
+	\chi^2=\sum_{n=1}^{\infty} [y_i-f(x_i,a,b)]/\sigma_i^2
+\end{split}
 \end{equation}
+The hitch of this fitting procedure, though, is that you need a starting point for the parameters
+$a$ and $b$ that is roughly close to a $chi^2$ minimum, or your search grid must be very large.
 
-\begin{equation}
-	V(r)=V_a \frac{e^{-ax}}{x}+V_b \frac{e^{-bx}}{x}+V_c \frac{e^{-cx}}{x},
-	\label{eq:NPpot}
-\end{equation}
-with $x=\mu r$, $\mu=0.7$ fm$^{-1}$ (the inverse of the pion mass),
-$V_a=-10.463$ MeV and $a=1$, $V_b=-1650.6$ MeV and $b=4$ and
-$V_c=6484.3$ MeV and $c=7$.
-
-For both potentials, we find the momentum-space representations using
-the Fourier-Bessel transform, we specialize to the case $l=0$ since we're
-only aiming to calculate $\delta_0$. For the finite well potential we
-have
-
-\begin{align*}
-	V_l(k,k')&= \int j_l(kr)V(r)j_l(k'r)r^2dr\\
-	&= V_0 \int_0^a \frac{\sin(kr) \sin(k'r) r^2}{k k' r^2} dr\\
-	&= \frac{V_0}{k k'} \int_0^a \sin(kr) \sin(k'r) dr\\
-	&= \frac{V_0}{k k'} \frac{k' \sin(ka) \cos(k'a) - k \cos(ka) \sin(k'a)}{k^2 - k'^2}
-\end{align*}
-and
-\begin{equation*}
-	V(k,k) = \frac{V_0}{k^2} \left ( \frac{a}{2} - \frac{2 \sin (ka)}{4 k} \right )
-\end{equation*}
-in the case $k=k'$. For the $np$ model, the momentum space representation
-is
-
-\begin{equation*}
-V (k,k') =\frac{V_{\eta}}{4\mu k k'}\ln\left[\frac{(\mu \eta)^{2}+(k+k')^{2}}
-{(\mu\eta)^{2}+(k-k')^{2}}\right]
-\end{equation*}
+In the case of our EFT, we are using an expansion for the potential that we know hold up at low
+momentum. So our LO term should have the largest contribution. It is helpful, then, to start our
+search in just one dimension, since each parameter has it's own $\chi^2$ relationship. We fit for
+$C_0$ first, and use this local $chi^2$ minimum value to guide our efforts with the NLO and
+NNLO coefficients. In this way, we build our EFT to recreate the baseline phase shifts we
+calculated in Project 1. 
 
 
-\subsection{$A$ Matrix}
-
-Care must be taken when setting up the matrix $A$ to solve for the reaction
-matrix. Pedantically, there are four sections of this matix that must be treated
-separately.
-
-\begin{enumerate}
-	\item $A(i,j) = \delta _{i,j} - V(i,j) u_j$ for $i,j \in 1..N$
-	\item $A(N+1,j) = -V(N+1,j) u_j$ for $j \in 1..N$, the last row
-	\item $A(i,N+1) = -V(i,N+1) u_{N+1}$ for $i \in 1..N$, the last column
-	\item $A(N+1,N+1) = 1 - V(N+1,N+1) u_{N+1}$ bottom right corner
-\end{enumerate}
 
 
-%\subsection*{The General Algorithm}
 
 %\[
 %\begin{bmatrix}
@@ -239,24 +189,31 @@ separately.
 
 \section{Methods}
 
-We implemented our numerical solution to the Lippman-Schwinger equation as a \texttt{C++} class.
-This class consists of three two-dimensional data structures to hold the $V$, $A$ and $R$ matrices,
-two one-dimensional data structures to hold the weights and momentum mesh points that define the
-integration domain and several ancillary variables that specify the nucleon mass and other book-keeping
-parameters. Application of the algorithms sketched in the previous section is carried out in a series of
-member functions that (a) set up the mesh points and weights (b) set up the potential matrix (c) set
-up the $A$ matrix (d) invert $A$ to get $R$ then extract $\delta _0$. In principle,
-different functions may be used to set up different potentials; we coded one for the model $np$ interaction
-given above and one for a finite spherical well to check that we recover the analytic result.
+We use the low-energy phase shifts from project 1 to fit our parameters in order to create our EFT. 
+To calculate phase shifts, we implemented our numerical solution to the Lippman-Schwinger equation
+as a \texttt{C++} class. This class consists of three two-dimensional data structures to hold the
+$V$, $A$ and $R$ matrices, two one-dimensional data structures to hold the weights and momentum
+mesh points that define the integration domain and several ancillary variables that specify the nucleon
+mass and other book-keeping parameters. Application of the algorithms sketched in the previous
+section is carried out in a series of member functions that (a) set up the mesh points and weights (b)
+set up the potential matrix (c) set up the $A$ matrix (d) invert $A$ to get $R$ then extract $\delta _0$. 
+
 This class is defined in the source
 files \texttt{NucleonScattering.cpp} and \texttt{NucleonScattering.hh}. An instance of the class is
 created and the correct sequence of methods is called in the \texttt{main} function defined in
-\texttt{main.cpp}. We include three versions of \texttt{main.cpp} that (1) calculate $\delta_0$
-for a single energy, (2) loop over energies and calculate $\delta_0$ for the a range of energies
-using the finite spherical potential and (3) run the calculation for the experimental energies.
-The results from cases (2) and (3) are saved to the files \texttt{output/FiniteSpherel0ps.txt}
-and \texttt{output/l0ps.txt} repectively. We generated FIG.~\ref{fig:analyticDelta} and
-FIG.~\ref{fig:NPexp} from these files.
+\texttt{main.cpp}.
+
+For our benchmark data, we use an NP potential with the form
+
+%put NP potential here!!!
+
+
+and calculate the phase shifts for a range of energies.
+We then use our LO, NLO, and NNLO EFT potentials from above to calculate the phase shifts for 
+a range of energies. Since we know the form of the potential, we can use a last-squares fitting procedure to get values for our LO, 
+NLO, and NNLO coefficients. This procedure is outlined above in the Theory section.
+
+%specify chi^2 space searh procedure here!!! i.e. did we search the full 4 dimensional space or look around the chi^2 minimum for C_0 to find the others?
 
 
 %% -------------------------- CODE LISTING -------------------------- %%
@@ -310,35 +267,35 @@ FIG.~\ref{fig:NPexp} from these files.
 
 \section{Results and discussion}
 
-As a check, we calculate $\delta _0$ from the analytic formula for the simple finite square
-well.
+\subsection{Pionless EFT}
+We began our EFT with the leading order term for the potential
+\begin{equation}
+\begin{split}
+V^\mathrm{LO}_{^1S_0}(p',p)=C_0.
+\end{split}
+\end{equation}
+We calculated the phase shifts for various values of $C_0$, and plotted them against the
+$\chi^2$ value for the comparison to our benchmark data from Project 1. 
+
+
+We then picked out the value of $C_0$ for which $\chi^2$ is a minimum, and calculated
+the phase shifts for the LO potential.
+
+Our results agree at low lab energy (low-momentum), which we expect due to our expansion. 
+
+Next, we added the next-to-leading-order term to our potential
 
 \begin{equation}
-	\delta _0(E) = \arctan \left [ \sqrt{\frac{E}{E+V_0}} \tan \left ( R \sqrt{2 \mu (E + V_0)}
- \right ) \right ] - R \sqrt{2 \mu E}
-	\label{eq:deltaAnalytic}
+\begin{split}
+V^\mathrm{NLO}_{^1S_0}(p',p)=C_2(p^2 + p'^2),
+\end{split}
 \end{equation}
-where
-\begin{equation*}
-	E = \frac{k^2}{2 \mu}
-\end{equation*}
-The results are shown for three different numbers of mesh points ($N=5,N=50,N=100$) in
-FIG.~\ref{fig:analyticDelta}. In terms of convergence, our result is stable with $N=50$ points.
-The overall agreement with the analytic result is worse for higher lab energies because there
-are fewer mesh points at these higher energies. The way we map our integration points from
-the interval $[-1,1]$ to $[0,\infty)$ results in a higher density of mesh points at lower energies.
-Therefore, we expect the calculation to be more accurate at lower energies. FIG.~
-\ref{fig:analyticDelta}
-shows that our results agree with the analytic value to within 25\% for $E_{\mathrm{lab}}$ less
-than 100 MeV.
 
-In FIG.~\ref{fig:NPexp}, we plot our calculated phase shifts next to the experimental results
-tabulated in \citep{Nijmegen}. For lab energies at and below 100 MeV, we see good agreement
-with the data ($< 10$\%), suggesting that our model potential best reproduces the underlying
-physics at lower energies. The model also reproduces the point ($E_{\mathrm{lab}} = 250$ MeV)
-where $\delta_0$ turns negative and we start to probe the repulsive core of the interaction.
+This time, we initialized $C_0$ at the value found from the leading-order fit. We plotted
+$\chi^2$ in both dimensions to visually pick out a local minimum around which to search,
+and to get an idea of a reasonable threshold for acceptance.
 
-
+\subsection{Including One-Pion Exchange}
 
 
 %%%%%%%%%%%%%%%%%
