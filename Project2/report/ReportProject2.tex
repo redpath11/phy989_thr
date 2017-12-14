@@ -339,120 +339,56 @@ physics at lower energies. The model also reproduces the point ($E_{\mathrm{lab}
 where $\delta_0$ turns negative and we start to probe the repulsive core of the interaction.
 
 
-\subsection{Variable Phase Approach}
-The variable phase approach (VPA) relies on numerical methods to solve the differential equation.
-
-\[
-\frac{d\delta(k,r)}{dr} = -\frac{1}{k} 2M V(r) \sin^2[kr + \delta(k,r)]
-\]
-for $\delta(k,r)$. The VPA is simple to use,
-and information about the potential is relatively easy to extract. For example, here we show
-that the presence of bound states (and the number of them) for a certain potential depth can
-be quickly determined, and short-range repulsive components of the potential can
-be inferred based on phase shift calculations at various energies.
-
-The VPA truncates a realistic potential at some cutoff radius $\rho$.
-Then, we inegrate over $r$ out to a sufficiently large radius ($R_{\mathrm{max}} > \rho$). 
 
 
-In FIG.~\ref{fig:VPA}, we note that the phase shift becomes constant after a radius of 1;
-this is the radius of the square well potential we used. Because of the discontinuity in the potential at the
-edge of the square well, there is no ambiguity about how large we need to make our integration
-radius: obviously, as soon as we are looking beyond the radius of potential, the phase shift will
-converge to a constant value. This tells us that an integration radius greater than the square well 
-will be sufficient for the phase shift to converge.
-
-We then examined the plots of $k\cot(\delta)$ and $\delta$ to test Levinson's Theorem,
-which states that the number of bound states can be calculated by looking at $\delta(E=0)$
-and the limit of $\delta$ as $E$ approaches $\infty$
-
-\begin{equation*}
-	\phi_l(0)-\phi_l(\infty)=n\pi
-\end{equation*}
-where $n$ is the number of bound states the potential can hold. For a well depth $V_c=1.0$,
-$\phi_l(0)=0$,  $\phi_l(\infty)=0$. This means that this well cannot bind any states
-with $l=0$. For a well depth $V_c=2.0$, $\phi_l(0)=3.14$,  $\phi_l(\infty)=0$,
-meaning that at this depth, the well can hold one $l=0$ bound state.
-
-We add now a short-range repulsive potential and calculate the phase shifts using the VPA.The
-sign of the phase shift can characterize a potential as attractive ($\delta_0>0$) or repulsive
-($\delta_0<0$). Adding a repulsive term should begin to make a difference at higher
-energies where the approaching particles can get close enough to ``see'' the effect of
-the repulsive core. At these higher energies, we should see the phase shift turn negative,
-indicating the repulsive character of the potential.
-
-With $V_c=0$ there is no repulsive part and the potential is purely attractive, we get that
-$\phi_l(\infty)=0$. This indicates, as we predicted, a purely attractive potential.
-Around $V_c=18$, we can see the phase shift turning over at around $k=10$. As we increase
-the height of the repulsive potential, the phase shifts start to become negative at lower and
-lower energies, until at $V_c=100$ the phase shift turns negative at only $k=6$. 
-
-Because the nuclear force is repulsive at short distances ($V \rightarrow \infty$ for $r \rightarrow 0$),
-we can use calculated phase shifts from experimental cross sections to estimate the range
-of the repulsive part of the nuclear force ($R_c$). The incoming momenta/energy ($k$) at which the
-phase shift changes gives us an estimate of the length scale at which the repulsive piece of the
-interaction becomes dominant.
+%%%%%%%%%%%%%%%%%
+%%%%% Pionless figures %%%%%
+%%%%%%%%%%%%%%%%%
 
 \begin{figure}
 \centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_LOpionless.eps}
-	\caption{}
-	\label{fig:LOpionless}
+	\includegraphics[width=0.5\textwidth]{figures/phy989_pionless.eps}
+	\caption{Comparison between the three-Yukawa $np$ model $l=0$ phase shifts
+	(black X)
+	and the phase shifts calculated from the LO, NLO, NNLO EFT potentials (blue
+	dots).}
+	\label{fig:pionless}
 \end{figure}
 
-
 \begin{figure}
 \centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_NLOpionless.eps}
-	\caption{}
-	\label{fig:NLOpionless}
+	\includegraphics[width=0.5\textwidth]{figures/phy989_pionlessLepage.eps}
+	\caption{Lepage error plot comparing the LO, NLO, NNLO EFT potentials to the
+	$np$ model pseudo data. The kinks in the lines are where the sign of the error
+	changes. The NLO and NNLO errors are the same above lab energies of 100
+	keV.}
+	\label{fig:pionlessLepage}
 \end{figure}
 
-
 \begin{figure}
 \centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_NNLOpionless.eps}
-	\caption{}
-	\label{fig:NNLOpionless}
-\end{figure}
-
-%%%%%%%%%%%%%%
-%% Pionless Lepage plot here
-%%%%%%%%%%%%%%
-
-\begin{figure}
-\centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_LepageCutoff.eps}
-	\caption{}
+	\includegraphics[width=0.5\textwidth]{figures/phy989_pionlessCutoff.eps}
+	\caption{Lepage error plot for NLO EFT potentials with various cutoffs $\Lambda_c$.
+	From these results, we deduce that $\Lambda_c = 0.71$ (the pion mass) is roughly
+	the breakdown scale for which setting $\Lambda_c$ too far below or above this
+	value worsens the agreement with the underlying theory.}
 	\label{fig:LepageCutoff}
 \end{figure}
 
 \clearpage
 
-
-%%%%%%%%%%%%%%% PIONS !!! %%%%%%%%%%%%%%
-
-\begin{figure}
-\centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_LOpion.eps}
-	\caption{}
-	\label{fig:LOpion}
-\end{figure}
-
+%%%%%%%%%%%%%%%
+%%%%% PIONS !!! %%%%%
+%%%%%%%%%%%%%%%
 
 \begin{figure}
 \centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_NLOpion.eps}
-	\caption{}
-	\label{fig:NLOpion}
-\end{figure}
-
-
-\begin{figure}
-\centering
-	\includegraphics[width=0.5\textwidth]{figures/phy989_NNLOpion.eps}
-	\caption{}
-	\label{fig:NNLOpion}
+	\includegraphics[width=0.5\textwidth]{figures/phy989_OnePion.eps}
+	\caption{Comparison between the three-Yukawa $np$ model $l=0$ phase shifts
+	(black X)
+	and the phase shifts calculated from the LO, NLO, NNLO one-pion exchange
+	EFT potentials (blue dots).}
+	\label{fig:OnePion}
 \end{figure}
 
 \begin{figure}
@@ -462,12 +398,18 @@ interaction becomes dominant.
 	\label{fig:OnePionLepage}
 \end{figure}
 
-%%%%%%%%%%%
-%% One Pion cutoff %%
-%%%%%%%%%%%
+\begin{figure}
+\centering
+	\includegraphics[width=0.5\textwidth]{figures/phy989_OnePionCutoff.eps}
+	\caption{Lepage error plot comparing the $np$ model and EFT $\pi-$NLO with
+	for various cutoff values $\Lambda_c$.}
+	\label{fig:OnePionCutoff}
+\end{figure}
 
 
-%%\section{Conclusions}
+\section{Conclusions}
+
+A more rigorous fitting routine would do a better job of tuning the EFT coefficients.
 
 
 %\begin{thebibliography}{99}
